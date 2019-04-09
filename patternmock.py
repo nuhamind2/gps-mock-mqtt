@@ -3,14 +3,15 @@ import time
 import json
 from collections import deque
 import random
+import sys
 
-def on_connect(client):
-    print("connected")
+def on_connect(client, userdata, flags, rc):
+    print(f'{client._client_id} connected')
 
 if __name__ == "__main__":
     lons = [round(110.15 + (x*0.03), 2) for x in range(10)]
     lats = [round(-7.75 - (x*0.015), 2) for x in range(10)]
-    clientid = [f'asset_{x}{y}' for x in 'abcdefghij' for y in 'QRSTUVWXYZ']
+    clientid = [f'{sys.argv[1]}.{x}.{y}' for x in 'abcdefghij' for y in 'QRSTUVWXYZ']
     latslons = [[m, n] for m in lats for n in lons]
     paths = [[0, 0.017966305682390427],
              [-0.00971331841609056, 0.015114218054838233],
@@ -40,10 +41,10 @@ if __name__ == "__main__":
         mqttc.max_queued_messages_set(1)
         mqttc.message_retry_set(5)
         mqttc.ws_set_options(path="/tenant1", headers=None)
-        mqttc.tls_set()
+#        mqttc.tls_set()
         mqttc.username_pw_set(username="nuha", password="nuha")
         mqttc.on_connect = on_connect
-        mqttc.connect_async("mqtt.pirantiempuk.com", 443, 60)
+        mqttc.connect_async("127.0.0.1", 9000, 60)
         mqttc.loop_start()
         clients_connection.append(mqttc)
     # while True:
@@ -72,7 +73,6 @@ if __name__ == "__main__":
         for index,latlon in enumerate(latslons):
             #time.sleep(random.uniform(0,1)/len(latslons))
             #time.sleep(1/len(latslons))
-            #time.sleep(1)
             current_pos = state[index]
             state[index] = 1 if current_pos == 100 else current_pos + 1
             try:
@@ -80,7 +80,7 @@ if __name__ == "__main__":
             except:
                 print(current_pos)
             msg = dict(lat = latlon[0] + mod[0],lon = latlon[1] + mod[1],time=int(time.time()))
-            clients_connection[index].publish("gps",json.dumps(msg))
+            clients_connection[index].publish("gps.fused.test",json.dumps(msg))
             #print(json.dumps(msg))
 
 

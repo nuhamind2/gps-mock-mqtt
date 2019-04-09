@@ -13,7 +13,7 @@ async def main(loop):
         Clients = [MQTTClient(config=dict(keep_alive=900))
                               for n in range(100)]
         task = [loop.create_task(
-            c.connect("ws://127.0.0.1:9010")) for c in Clients]
+            c.connect("ws://localhost:9000")) for c in Clients]
         a = await asyncio.gather(*task)
         allClient.append(Clients)
         total_client += len(a)
