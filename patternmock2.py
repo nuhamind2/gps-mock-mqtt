@@ -1,4 +1,7 @@
 # this script do what patternmock do but using hbmqtt client library
+# How to run
+# python3 patternmock2.py ws://localhost:9000 DEMO1 10
+# to connect to localhost at port 9000 using websocket, simulate 10 client with clientId prefix 'DEMO1'
 import logging
 import asyncio
 import time
@@ -7,6 +10,8 @@ import random
 import json
 from hbmqtt.client import MQTTClient, ClientException
 from hbmqtt.mqtt.constants import QOS_1, QOS_2
+#
+#
 
 
 async def main(loop):
@@ -20,11 +25,19 @@ async def main(loop):
     # starting point offset
     states = [int(random.uniform(0, len(paths))) for x in range(len(latslons))]
     # clientid
-    clientid = [
-        f'{sys.argv[2]}.{x}{y}' for x in 'abcdefghij' for y in 'QRSTUVWXYZ'][:int(sys.argv[3])]
-
-    Clients = [MQTTClient(client_id = cid,config=dict(keep_alive=2)) for cid in clientid]
-    task = [loop.create_task(c.connect(sys.argv[1])) for c in Clients]
+    client_count = int(sys.argv[3])
+    ids = [random.randint(1,10000) for x in range(client_count)]
+    clientid_prefix = sys.argv[2]
+    clientids = [f'{clientid_prefix}-{id}' for id in ids]
+    usernames = [f'name{id}' for id in ids]
+    host = sys.argv[1]
+    def make_uri(host,username):
+        idx = host.find("//")
+        uri = f'{host[:idx+2]}{username}@{host[idx+2:]}'
+        return uri
+    
+    Clients = [MQTTClient(client_id = cid,config=dict(keep_alive=100)) for cid in clientids]
+    task = [loop.create_task(c.connect(make_uri(host,username))) for c,username in zip(Clients,usernames)]
     a = await asyncio.gather(*task)
     print("Client conencted" ,len(a))
     while True:
@@ -35,7 +48,7 @@ async def main(loop):
         task = [c.publish("gps",json.dumps(msg).encode())for c,msg in zip(Clients,msgs)]
         a = await asyncio.gather(*task)
         print("message published" ,len(a))
-        await asyncio.sleep(1000)
+        await asyncio.sleep(1)
 
 loop = asyncio.get_event_loop()
 loop.run_until_complete(main(loop))
